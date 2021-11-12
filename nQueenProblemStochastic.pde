@@ -1,32 +1,41 @@
 import java.util.Random;
-
+//the number of queens
 int n = 8;
+//number of runs
+int numberOfRuns = 1000;
 Board b;
+//the array for each cells heuristic value
 private int[][] nextH = new int[n][n];
-int[] status = new int[1000];
-int[] steps = new int[1000];
+//the result of each run
+int[] status = new int[numberOfRuns];
+//number of steps at each run
+int[] steps = new int[numberOfRuns];
 int counter;
 int i1 =0;
 void setup() {
   size(1000, 1000); //size of the window
   background(255);//setting white background
+  //intialize the values of status and steps
   for (int i =0; i< steps.length; i++) {
     status[i] = 0;
     steps[i] = 0;
   }
+  //the algorithm, runs numberOfRuns time, eg 1000
   for (int i =0; i< steps.length; i++) {
-  b = new Board(n);
-  b.drawBoard(steps[i1]);
-
+    //a new board with random queen positions
+    b = new Board(n);
+    b.drawBoard(steps[i1]);
+    //while its not local maxima or win the game
     while (true) {
+      //calculate next step if everything is ok
       if (status[i1] ==0) {
         b = calculateNextStep(b);
         b.drawBoard(steps[i1]);
         println(steps[i1]);
-      } else if (status[i1] == 1) {
+      } else if (status[i1] == 1) { // if won break
         println("won");
         break;
-      } else if (status[i1] == -1) {
+      } else if (status[i1] == -1) { // if local maxima break
         println("local max");
         break;
       }
@@ -34,15 +43,12 @@ void setup() {
     counter++;
     i1++;
   }
-
-
-  //hillClimbing(b);
-  println(b.toString());
-
+  //println(b.toString());
   int win_count = 0;
   int win_avg = 0;
   int lose_count = 0;
   int lose_avg = 0;
+  //calculate the win and lose rate, and their average
   for (int i =0; i< steps.length; i++) {
     if (status[i] == 1) {
       win_count++;
@@ -52,97 +58,97 @@ void setup() {
       lose_avg += steps[i];
     }
   }
-  println("Won " + win_count+ " of ", steps.length+"with average of:"+ win_avg/win_count);
-  println("Local Max " + lose_count+ " of ", steps.length+" with average of:"+ lose_avg/lose_count);
+  if (win_count != 0)
+    println("Won " + win_count+ " of ", steps.length+"with average of:"+ win_avg/win_count);
+  else
+    println("Won " + win_count+ " of ", steps.length+"with average of:"+ 0);
+  if (lose_count != 0)
+    println("Local Max " + lose_count+ " of ", steps.length+" with average of:"+ lose_avg/lose_count);
+  else
+    println("Local Max " + lose_count+ " of ", steps.length+" with average of:"+ 0);
 }
+//the empry draw function
 void draw() {
 }
 void keyPressed() {
   if (key == CODED) {
     if (keyCode == UP) {
+      //the code to run only one board, not numberOfRuns times, work with UP arrow key
       if (status[0] ==0) {
         b = calculateNextStep(b);
         b.drawBoard(steps[0]);
         println(steps[0]);
       } else if (status[0] == 1) {
         println("won");
-        //brek;
       } else if (status[0] == -1) {
         println("local max");
-        //break;
       }
     }
   }
 }
-
-
-
+//calculate next step from the current board
 public Board calculateNextStep(Board current) {
+  //get the current board
   int[][] cells = current.getBoard();
+  //its not a local max at the start
   boolean isLocalMax = false;
+  //we have not win at the start
   boolean win = false;
+  //if it is not a loacl maxima and not win
   if (!isLocalMax && !win) {
+    //for all the cells
     for (int i =0; i < cells.length; i++) {
       int[] temp = cells[i];
       int[][] c = cells;
-
+      //move a queen in 'c' to a new position
       for (int j = 0; j < cells.length; j++) {
         c[i] = new int[cells.length];
         for (int x =0; x < cells.length; x++) {
           c[i][x] = 0;
         }
         c[i][j] = 1;
-        //children[i][j] = new Board(c);
+        // create a new board with the cells of 'c' and get the heuristic value for the board with a single queen in a new position
         nextH[i][j] = new Board(c).h;
       }
       c[i] = temp;
     }
+    //print the values of h for each cell if the queen from that row was there
     for (int i =0; i < cells.length; i++) {
       for (int j = 0; j < cells.length; j++) {
         print(nextH[i][j]+ " ");
       }
       println();
     }
-
+    //stochastic hill climbing algorithm
+    //find a random uphill neighbour, a random cell between all the cells with a better h value
     int ii = 0;
     int jj = 0;
     int val = 0;
     int min = current.h;
+    //find the minimum of heuristics in the board
     for (int i =0; i < cells.length; i++) {
       for (int j = 0; j < cells.length; j++) {
         if (nextH[i][j] < min) {
           min = nextH[i][j];
+          ii = i;
+          jj = j;
         }
       }
     }
-
+    //if the minimum of h value is local maxima, change status
     println("min: "+min + " h:" + current.h);
     if (min == current.h) {
       println("local max");
       isLocalMax = true;
       status[counter] = -1;
       return current;
-    } else {
-          Random rand = new Random();
-    ii = rand.nextInt(n);
-    jj = rand.nextInt(n);
-    while (true) {
-        if (nextH[ii][jj] < current.h) {
-          val = nextH[ii][jj];
-          break;
-        } else {
-          ii = rand.nextInt(n);
-          jj = rand.nextInt(n);
-        }
-      
-    }
-      if (val == 0) {
-        println("win");
-        win = true;
-        status[counter] = 1;
-      }
+    } else if (min == 0) {
+      //if we can win, win
+      println("win");
+      win = true;
+      status[counter] = 1;
       Board best = current;
-
+      //change the position of the queen to the best place
       for (int i =0; i < cells.length; i++) {
         if (i == ii) {
           for (int x =0; x < cells.length; x++) {
@@ -152,12 +158,49 @@ public Board calculateNextStep(Board current) {
           best.cells[i][jj] = 1;
         }
       }
-
-      //println(ii+ " "+jj);
-      //println(best.toString());
-      best.ev();
+      //calculate h
+      best.calculateH();
+      //add a step
       steps[counter]++;
+      //return the new win state
       return best;
+    } else {
+      Random rand = new Random();
+      //randomly get a row and column
+      ii = rand.nextInt(n);
+      jj = rand.nextInt(n);
+      //check to see if the neighbor is an up hill move
+      while (true) {
+        //if it is a up hill move, the h value is smaller than our current state's h value
+        if (nextH[ii][jj] < current.h) {
+          val = nextH[ii][jj];
+          break;
+        } else {
+          //if it is not smaller, randomly assign a row and colomn and try again
+          ii = rand.nextInt(n);
+          jj = rand.nextInt(n);
+        }
+      }
+      Board random = current;
+      //change the position of the queen to the random uplhill place
+
+      for (int i =0; i < cells.length; i++) {
+        if (i == ii) {
+          for (int x =0; x < cells.length; x++) {
+            random.cells[i][x] = 0;
+          }
+
+          random.cells[i][jj] = 1;
+        }
+      }
+
+      //calculate h
+      random.calculateH();
+      //add a step
+      steps[counter]++;
+      //return the current state
+
+      return random;
     }
   }
 
